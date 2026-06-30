@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Storage Inventory Database</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;color:#1a1a1a;background:#f0f0f0;font-size:15px}
+.app-wrap{max-width:960px;margin:0 auto;padding:1.5rem 1.5rem}
+.app-title{font-size:20px;font-weight:500;margin-bottom:1.5rem}
+.tabs{display:flex;gap:0;margin-bottom:1.5rem;background:#fff;border-radius:10px;padding:4px;border:0.5px solid #e0e0e0}
+.tab{flex:1;padding:8px 4px;border:none;background:none;cursor:pointer;font-size:13px;color:#666;border-radius:7px;font-family:inherit}
+.tab.active{background:#185FA5;color:#fff;font-weight:500}
+.tab:hover:not(.active){background:#f5f5f5;color:#1a1a1a}
+.panel{display:none}.panel.active{display:block}
+.card{background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;padding:1rem 1.25rem;margin-bottom:12px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{display:block;font-size:11px;color:#666;margin-bottom:4px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em}
+input,select,textarea{width:100%;padding:8px 10px;border:0.5px solid #ccc;border-radius:8px;font-size:14px;font-family:inherit;color:#1a1a1a;background:#fff}
+textarea{resize:vertical;min-height:70px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#185FA5}
+.btn{padding:8px 14px;border:0.5px solid #ccc;border-radius:8px;background:transparent;cursor:pointer;font-size:13px;font-family:inherit;color:#1a1a1a}
+.btn:hover{background:#f5f5f5}
+.btn-primary{background:#185FA5;color:#fff;border-color:#185FA5}
+.btn-primary:hover{background:#0C447C}
+.btn-danger{color:#A32D2D;border-color:#f09595}
+.btn-danger:hover{background:#FCEBEB}
+.btn-sm{padding:4px 9px;font-size:12px}
+.row{display:flex;gap:8px;align-items:flex-end}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
+.badge-blue{background:#E6F1FB;color:#185FA5}
+.badge-green{background:#EAF3DE;color:#3B6D11}
+.badge-amber{background:#FAEEDA;color:#854F0B}
+.badge-purple{background:#EEEDFE;color:#3C3489}
+.badge-gray{background:#f0f0f0;color:#666}
+.item-card{background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;padding:16px;margin-bottom:10px}
+.item-name{font-weight:500;font-size:15px;margin-bottom:4px}
+.item-meta{font-size:12px;color:#666;margin-bottom:4px}
+.location-path{font-size:12px;color:#185FA5;margin-bottom:4px}
+.find-box{background:#E6F1FB;border:0.5px solid #B5D4F4;border-radius:8px;padding:14px 16px;font-size:13px;margin-top:10px;display:none;line-height:1.8}
+.find-box.show{display:block}
+.step{display:flex;gap:7px;margin-bottom:4px;align-items:flex-start}
+.step-n{display:inline-flex;width:18px;height:18px;border-radius:50%;background:#185FA5;color:#fff;font-size:10px;font-weight:500;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.search-wrap{position:relative;margin-bottom:12px}
+.search-wrap input{padding-left:34px}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#aaa;font-size:16px;pointer-events:none}
+.filter-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.filter-row select{width:auto;flex:1;min-width:120px;font-size:13px}
+.empty{text-align:center;padding:2.5rem 1rem;color:#aaa}
+.sec-title{font-size:11px;font-weight:500;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;margin-top:14px}
+.sec-title:first-child{margin-top:0}
+.loc-item{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:0.5px solid #e0e0e0;border-radius:8px;margin-bottom:6px;background:#fff}
+.loc-tree{padding-left:16px;border-left:2px solid #e8e8e8;margin-left:8px;margin-top:4px;margin-bottom:4px}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.25rem}
+.stat{background:#fff;border-radius:8px;padding:10px 14px;border:0.5px solid #e0e0e0}
+.stat-num{font-size:28px;font-weight:500}
+.stat-lbl{font-size:11px;color:#666;margin-top:2px}
+.media-tag{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:#185FA5;background:#E6F1FB;padding:2px 7px;border-radius:5px;margin-right:3px;margin-top:3px}
+.item-top{display:flex;justify-content:flex-start;align-items:flex-start;gap:10px}
+.item-actions{display:flex;gap:6px;align-items:center;flex-shrink:0}
+.success-msg{background:#EAF3DE;border:0.5px solid #C0DD97;border-radius:8px;padding:10px 14px;font-size:13px;color:#3B6D11;margin-bottom:12px;display:none}
+
+/* ── Photo lightbox modal ────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal-box{background:#fff;border-radius:14px;padding:20px;max-width:90vw;max-height:90vh;display:flex;flex-direction:column;gap:12px;position:relative}
+.modal-img{max-width:min(700px,85vw);max-height:70vh;object-fit:contain;border-radius:8px;display:block}
+.modal-caption{font-size:13px;color:#444;line-height:1.6}
+.modal-close{position:absolute;top:12px;right:14px;background:none;border:none;font-size:22px;cursor:pointer;color:#666;line-height:1}
+.modal-close:hover{color:#1a1a1a}
+.modal-title{font-size:16px;font-weight:500;padding-right:30px}
+/* ── Find-it section always visible ─────────────────────── */
+.find-section{background:#E6F1FB;border:0.5px solid #B5D4F4;border-radius:8px;padding:14px 16px;margin-top:10px}
+.find-section-label{font-size:11px;font-weight:500;color:#185FA5;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;display:flex;align-items:center;gap:5px}
+/* ── Thumb clickable ─────────────────────────────────────── */
+.thumb-btn{background:none;border:none;padding:0;cursor:pointer;flex-shrink:0}
+.thumb-btn img{width:96px;height:96px;object-fit:cover;border-radius:10px;border:0.5px solid #e0e0e0;transition:transform 0.15s,box-shadow 0.15s}
+.thumb-btn:hover img{transform:scale(1.05);box-shadow:0 4px 12px rgba(0,0,0,0.18)}
+.thumb-btn:active img{transform:scale(0.98)}
+</style>
+</head>
+<body>
+
+<!-- Photo lightbox modal -->
+<div id="photo-modal" class="modal-overlay" onclick="closeModal(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('photo-modal').classList.remove('open')">&#215;</button>
+    <div class="modal-title" id="modal-title"></div>
+    <img class="modal-img" id="modal-img" src="" alt="">
+    <div class="modal-caption" id="modal-caption"></div>
+  </div>
+</div>
+<div class="app-wrap">
+<div class="app-title" style="display:flex;align-items:center;justify-content:space-between">
+  <span>&#128230; Storage Inventory Database</span>
+  <span id="save-indicator" style="font-size:12px;font-weight:400;color:#3B6D11;opacity:0;transition:opacity 0.3s">✓ Saved</span>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('dashboard')">&#9783; Dashboard</button>
+  <button class="tab" onclick="switchTab('search')">&#128269; Search</button>
+  <button class="tab" onclick="switchTab('add')">&#43; Add item</button>
+  <button class="tab" onclick="switchTab('locations')">&#127970; Locations</button>
+</div>
+
+<!-- DASHBOARD -->
+<div id="tab-dashboard" class="panel active">
+  <div class="stat-grid">
+    <div class="stat"><div class="stat-num" id="s-items">0</div><div class="stat-lbl">Total items</div></div>
+    <div class="stat"><div class="stat-num" id="s-buildings">0</div><div class="stat-lbl">Buildings</div></div>
+    <div class="stat"><div class="stat-num" id="s-rooms">0</div><div class="stat-lbl">Rooms</div></div>
+  </div>
+  <div class="sec-title">All items by location</div>
+  <div id="dash-list"></div>
+</div>
+
+<!-- SEARCH -->
+<div id="tab-search" class="panel">
+  <div class="search-wrap">
+    <span class="search-icon">&#128269;</span>
+    <input type="text" id="q" placeholder="Search by name, description, location, category…" oninput="runSearch()">
+  </div>
+  <div class="filter-row">
+    <select id="fb" onchange="runSearch()"><option value="">All buildings</option></select>
+    <select id="fr" onchange="runSearch()"><option value="">All rooms</option></select>
+    <select id="fc" onchange="runSearch()">
+      <option value="">All categories</option>
+      <option>Kitchen items</option><option>Furniture</option><option>Electronics</option><option>Tools</option>
+      <option>Documents</option><option>Decor</option><option>Sports equipment</option><option>Books/Media</option>
+      <option>Holiday decorations</option><option>Automotive</option><option>Other</option>
+    </select>
+  </div>
+  <div id="search-results"><div class="empty">&#128269;<br>Start typing to search</div></div>
+</div>
+
+<!-- ADD ITEM -->
+<div id="tab-add" class="panel">
+  <div class="success-msg" id="add-ok">&#10003; Item saved to database!</div>
+  <div class="card">
+    <div class="sec-title">Item details</div>
+    <div style="margin-bottom:10px"><label>Item name *</label><input type="text" id="f-name" placeholder="e.g. Red toolbox"></div>
+    <div class="grid-2" style="margin-bottom:10px">
+      <div><label>Category</label>
+        <select id="f-cat">
+          <option value="">— select —</option>
+          <option>Kitchen items</option><option>Furniture</option><option>Electronics</option><option>Tools</option>
+          <option>Documents</option><option>Decor</option><option>Sports equipment</option><option>Books/Media</option>
+          <option>Holiday decorations</option><option>Automotive</option><option>Other</option>
+        </select>
+      </div>
+      <div><label>Condition</label>
+        <select id="f-cond"><option value="">— select —</option><option>Excellent</option><option>Good</option><option>Fair</option><option>Poor</option></select>
+      </div>
+    </div>
+    <div style="margin-bottom:10px"><label>Description</label><textarea id="f-desc" placeholder="Color, size, markings…"></textarea></div>
+    <hr style="border:none;border-top:0.5px solid #e0e0e0;margin:12px 0">
+    <div class="sec-title">Location</div>
+    <div class="grid-2" style="margin-bottom:10px">
+      <div><label>Building *</label><select id="f-bld" onchange="updateRooms()"><option value="">— select —</option></select></div>
+      <div><label>Room *</label><select id="f-room"><option value="">— select —</option></select></div>
+    </div>
+    <div style="margin-bottom:10px"><label>Specific spot in room</label><input type="text" id="f-spot" placeholder="e.g. Top shelf, Back-left corner"></div>
+    <div style="margin-bottom:10px"><label>How to find it (step-by-step)</label><textarea id="f-dir" placeholder="e.g. Enter through main door, turn right…"></textarea></div>
+    <div style="margin-bottom:10px"><label>Photo / video reference</label><input type="text" id="f-media" placeholder="e.g. IMG_1069.jpeg"></div>
+    <div style="margin-bottom:10px"><label>Notes</label><textarea id="f-notes" placeholder="Extra info…" style="min-height:50px"></textarea></div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn btn-primary" onclick="saveItem()">Save item</button>
+      <button class="btn" onclick="clearForm()">Clear</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOCATIONS -->
+<div id="tab-locations" class="panel">
+  <div class="card">
+    <div class="sec-title">Add building</div>
+    <div class="row">
+      <input type="text" id="nb" placeholder="Building name">
+      <button class="btn btn-primary" onclick="addBuilding()" style="white-space:nowrap">Add</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="sec-title">Add room</div>
+    <div class="row">
+      <select id="rb" style="flex:0 0 180px"><option value="">Select building</option></select>
+      <input type="text" id="nr" placeholder="Room name">
+      <button class="btn btn-primary" onclick="addRoom()" style="white-space:nowrap">Add</button>
+    </div>
+  </div>
+  <div class="sec-title" style="margin-top:4px">All locations</div>
+  <div id="loc-tree"></div>
+  <div style="margin-top:18px;text-align:center">
+    <button class="btn btn-danger btn-sm" onclick="resetToSeed()">Reset to original seed data</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+const THUMBS = {};
+</script>
+<script>
+const SEED_BUILDINGS = [
+  { id: 1, name: "500 Walnut", rooms: [
+    { id: 101, name: "Kitchen / Break Room" },
+    { id: 102, name: "Back Storage Room" }
+  ]}
+];
+
+const now = new Date().toLocaleDateString();
+const SEED_ITEMS = [
+  // ── Kitchen / Break Room ─────────────────────────────────────────────────
+  { id:1, name:"Nespresso machine", category:"Kitchen items", condition:"Good", description:"Compact silver/white pod espresso machine, leftmost appliance on the walnut-cabinet counter", buildingId:1, buildingName:"500 Walnut", roomId:101, roomName:"Kitchen / Break Room", spot:"Coffee bar counter — far left position", directions:"1. Enter the Kitchen / Break Room through the white door at the center of the room.\n2. Turn right toward the dark walnut-cabinet wall.\n3. The Nespresso is the first appliance on the far left of the counter, sitting on a small black base.", media:"IMG_1067.jpeg · IMG_1069.jpeg", notes:"Zone 1 — Coffee & beverage bar", addedAt:now },
+  { id:2, name:"Drip coffee maker", category:"Kitchen items", condition:"Good", description:"Black Capresso-style drip coffee maker with carafe, second appliance from left on walnut counter", buildingId:1, buildingName:"500 Walnut", roomId:101, roomName:"Kitchen / Break Room", spot:"Coffee bar counter — 2nd from left", directions:"1. Face the dark walnut-cabinet coffee bar wall.\n2. The drip coffee maker is immediately to the right of the Nespresso, second position from left.", media:"IMG_1067.jpeg · IMG_1069.jpeg", notes:"Zone 1 — Coffee & beverage bar", addedAt:now },
+  { id:3, name:"Electric kettle (stainless)", category:"Kitchen items", condition:"Good", description:"Stainless steel electric kettle, center of the beverage bar lineup", buildingId:1, buildingName:"500 Walnut", roomId:101, roomName:"Kitchen / Break Room", spot:"Coffee bar counter — center, 3rd position", directions:"1. Face the dark walnut-cabinet coffee bar wall.\n2. The stainless kettle is third from the left, between the drip coffee maker and the Keurig.", media:"IMG_1067.jpeg · IMG_1069.jpeg", notes:"Zone 1 — Coffee & beverage bar", addedAt:now },
+  { id:4, name:"Keurig machine", category:"Kitchen items", condition:"Good", description:"Black Keurig single-serve coffee brewer, right side of the beverage bar", buildingId:1, buildingName:"500 Walnut", roomId:101, roomName:"Kitchen / Break Room", spot:"Coffee bar counter — right side, 4th position", directions:"1. Face the dark walnut-cabinet coffee bar wall.\n2. The black Keurig is the fourth appliance from the left, just right of the electric kettle.", media:"IMG_1067.jpeg · IMG_1069.jpeg", notes:"Zone 1 — Coffee & beverage bar", addedAt:now },
+  { id:5, name:"Water bottle (small, plastic)", category:"Other", condition:"Good", description:"Small plastic water bottle sitting on the counter between the electric kettle and Keurig", buildingId:1, buildingName:"500 Walnut", roomId:101, roomName:"Kitchen / Break Room", spot:"Coffee bar counter — between kettle and Keurig", directions:"1. Face the walnut coffee bar wall.\n2. Look between the stainless kettle and the black Keurig — the small water bottle sits on the counter there.", media:"IMG_1069.jpeg", notes:"Zone 1 — Coffee & beverage bar", addedAt:now },
+  { id:6, name:"Condiment / sugar caddy tray", category:"Kitchen items", condition:"Good", description:"White tiered tray/organizer holding sugar packets, stirrers, and creamers; far right of the counter", buildingId:1, buildingName:"500 Walnut", roomId:101, roomName:"Kitchen / Break Room", spot:"Coffee bar counter — far right, white tiered tray", directions:"1. Face the walnut coffee bar wall.\n2. Go to the far right end of the counter.\n3. The white tiered condiment tray is the last item on the right.", media:"IMG_1069.jpeg", notes:"Zone 1 — Coffee & beverage bar", addedAt:now },
+  { id:7, name:"Refrigerator (stainless, side-by-side)", category:"Kitchen items", condition:"Good", description:"Stainless steel Frigidaire side-by-side refrigerator with ice/water dispenser. Papers/notices magneted to front door.", buildingId:1, buildingName:"500 Walnut", roomId:101, roomName:"Kitchen / Break Room", spot:"Left wall — far left, floor to ceiling", directions:"1. Enter the Kitchen / Break Room.\n2. Turn to the left wall (opposite the walnut coffee bar).\n3. The large stainless side-by-side refrigerator is at the far left of that wall.", media:"IMG_1068.jpeg", notes:"Zone 2 — Refrigerator & cooking wall", addedAt:now },
+  { id:8, name:"Microwave (over-range, stainless)", category:"Kitchen items", condition:"Good", description:"Stainless steel Frigidaire over-range microwave, mounted above the counter between the fridge and sink", buildingId:1, buildingName:"500 Walnut", roomId:101, roomName:"Kitchen / Break Room", spot:"Left wall — mounted above countertop, center", directions:"1. Face the left wall (fridge/cooking side).\n2. Look above the counter, right of the refrigerator — the stainless microwave is mounted at eye level.", media:"IMG_1068.jpeg", notes:"Zone 2 — Refrigerator & cooking wall", addedAt:now },
+  { id:9, name:"Toaster oven", category:"Kitchen items", condition:"Good", description:"Small stainless toaster oven sitting on the counter beneath the microwave", buildingId:1, buildingName:"500 Walnut", roomId:101, roomName:"Kitchen / Break Room", spot:"Left wall — countertop, left side under microwave", directions:"1. Face the left wall cooking area.\n2. Look at the countertop directly under the microwave — the toaster oven is on the left side of the counter surface.", media:"IMG_1068.jpeg", notes:"Zone 2 — Refrigerator & cooking wall", addedAt:now },
+  { id:10, name:"Dishwasher (stainless, built-in)", category:"Kitchen items", condition:"Good", description:"Stainless steel Frigidaire built-in dishwasher, under the countertop to the right of the sink", buildingId:1, buildingName:"500 Walnut", roomId:101, roomName:"Kitchen / Break Room", spot:"Left wall — under counter, right of sink", directions:"1. Face the left wall cooking area.\n2. Find the sink in the counter.\n3. The stainless dishwasher is under the counter, to the right of the sink.", media:"IMG_1068.jpeg", notes:"Zone 2 — Refrigerator & cooking wall", addedAt:now },
+  { id:11, name:"Dish drying rack & plates", category:"Kitchen items", condition:"Good", description:"White dish drying rack with stacked white plates/dishes, sitting on the counter to the right of the sink", buildingId:1, buildingName:"500 Walnut", roomId:101, roomName:"Kitchen / Break Room", spot:"Left wall — countertop right of sink", directions:"1. Face the left wall cooking area.\n2. The white drying rack with plates is on the counter immediately to the right of the sink.", media:"IMG_1068.jpeg", notes:"Zone 2 — Refrigerator & cooking wall", addedAt:now },
+  { id:12, name:"Round dining table (wood, oval)", category:"Furniture", condition:"Good", description:"Large oval wood-tone dining table with chrome/black pedestal base, seats 4", buildingId:1, buildingName:"500 Walnut", roomId:101, roomName:"Kitchen / Break Room", spot:"Center-right of room", directions:"1. Enter the Kitchen / Break Room.\n2. The large oval/round wood dining table is in the center-right of the room, visible immediately upon entry.", media:"IMG_1069.jpeg", notes:"Zone 3 — Seating & tables", addedAt:now },
+  { id:13, name:"Dining chairs (set of 4, gray)", category:"Furniture", condition:"Good", description:"Set of 4 gray upholstered modern dining chairs with black metal legs, surrounding the round dining table", buildingId:1, buildingName:"500 Walnut", roomId:101, roomName:"Kitchen / Break Room", spot:"Around the round dining table", directions:"1. Locate the large round dining table in the center-right of the room.\n2. The 4 gray upholstered chairs are positioned around all sides of that table.", media:"IMG_1069.jpeg", notes:"Zone 3 — Seating & tables", addedAt:now },
+  { id:14, name:"High-top bar table (round, chrome pedestal)", category:"Furniture", condition:"Good", description:"Small round wood-tone high-top table on a chrome pedestal base. Has orchid plant and hand sanitizer on top.", buildingId:1, buildingName:"500 Walnut", roomId:101, roomName:"Kitchen / Break Room", spot:"Left wall area — near gray accent wall", directions:"1. Enter the Kitchen / Break Room.\n2. Look to the left side near the gray accent wall.\n3. The small round high-top table on a chrome pedestal is there.", media:"IMG_1068.jpeg · IMG_1069.jpeg", notes:"Zone 3 — Seating & tables", addedAt:now },
+  { id:15, name:"Bar stools (set of 2, gray)", category:"Furniture", condition:"Good", description:"Two gray upholstered bar-height stools with black metal frames, at the high-top table", buildingId:1, buildingName:"500 Walnut", roomId:101, roomName:"Kitchen / Break Room", spot:"At the high-top bar table", directions:"1. Find the small round high-top table near the left/gray wall.\n2. The two gray bar stools are pulled up to that high-top table.", media:"IMG_1069.jpeg", notes:"Zone 3 — Seating & tables", addedAt:now },
+  { id:16, name:"Magazine (red/pink cover)", category:"Books/Media", condition:"Good", description:"At least one magazine with a red/pink cover sitting on the surface of the large round dining table", buildingId:1, buildingName:"500 Walnut", roomId:101, roomName:"Kitchen / Break Room", spot:"On top of the round dining table", directions:"1. Go to the large round dining table in the center-right of the room.\n2. The magazine is on top of the table surface — red/pink cover.", media:"IMG_1069.jpeg", notes:"Zone 3 — Seating & tables", addedAt:now },
+  { id:17, name:"Orchid plant (orange/yellow)", category:"Decor", condition:"Good", description:"Orange/yellow orchid in a dark decorative pot, sitting on the high-top bar table near the gray accent wall", buildingId:1, buildingName:"500 Walnut", roomId:101, roomName:"Kitchen / Break Room", spot:"On the high-top bar table, near gray wall", directions:"1. Find the small high-top round table near the gray accent wall.\n2. The orange orchid in a dark pot is sitting on top of that high-top table.", media:"IMG_1068.jpeg · IMG_1069.jpeg", notes:"Zone 4 — Decor & miscellaneous", addedAt:now },
+  { id:18, name:"Trash cans (set of 2, dark gray step-open)", category:"Other", condition:"Good", description:"Two step-open rectangular trash cans (dark gray/black), placed side by side on the floor between seating zones", buildingId:1, buildingName:"500 Walnut", roomId:101, roomName:"Kitchen / Break Room", spot:"Center of room — between high-top table and dining table", directions:"1. Stand in the center of the room between the high-top table and the round dining table.\n2. The two dark rectangular step-open trash cans are side by side on the floor in that open area.", media:"IMG_1069.jpeg", notes:"Zone 4 — Decor & miscellaneous", addedAt:now },
+
+  // ── Back Storage Room ────────────────────────────────────────────────────
+  { id:19, name:"Callaway golf bag with clubs", category:"Sports equipment", condition:"Good", description:"Black Callaway golf bag fully loaded with clubs including drivers. Leaning against right wall near loading door.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Landing area — right wall near loading door", directions:"1. Enter the Back Storage Room from the kitchen hallway.\n2. The landing area is immediately visible.\n3. The Callaway golf bag is leaning against the RIGHT wall next to the loading door.", media:"IMG_1070.jpeg", notes:"Zone 1 — Landing / Stairwell Area", addedAt:"06/29/2026" },
+  { id:20, name:"Black golf bag (second set)", category:"Sports equipment", condition:"Good", description:"Second black golf bag with clubs, leaning left of Callaway bag near corner wall.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Landing area — left of Callaway bag, corner wall", directions:"1. Enter the Back Storage Room landing area.\n2. Look to the LEFT wall/corner — the second black golf bag leans here, left of the Callaway bag.", media:"IMG_1070.jpeg", notes:"Zone 1 — Landing / Stairwell Area", addedAt:"06/29/2026" },
+  { id:21, name:"Sports equipment tube (bat/stick case)", category:"Sports equipment", condition:"Good", description:"Long black cylindrical tube case, likely for baseball bats or hockey sticks. Yellow/orange handle visible. Leaning vertically against wall.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Landing area — leaning against wall left of loading door", directions:"1. Enter the Back Storage Room landing area.\n2. Look at the LEFT wall, left of the loading door — the long black tube leans vertically.", media:"IMG_1070.jpeg", notes:"Zone 1 — Landing / Stairwell Area", addedAt:"06/29/2026" },
+  { id:22, name:"Stack of books", category:"Books/Media", condition:"Good", description:"Stack of approximately 6–8 hardcover books on the floor. Green/illustrated cover visible on top.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Landing area — floor, left wall, bottom of stairs", directions:"1. Enter the Back Storage Room landing area.\n2. Look at the BOTTOM LEFT corner near the stairs — the stack of books is on the floor.", media:"IMG_1070.jpeg", notes:"Zone 1 — Landing / Stairwell Area", addedAt:"06/29/2026" },
+  { id:23, name:"Golf balls in red bucket with accessories", category:"Sports equipment", condition:"Good", description:"Red bucket with golf balls, plus additional loose golf accessories on the floor next to the bags.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Landing area — floor, center, between bags and wall", directions:"1. Enter the Back Storage Room landing area.\n2. Look on the floor between the golf bags and the left wall — red bucket with golf balls.", media:"IMG_1070.jpeg", notes:"Zone 1 — Landing / Stairwell Area", addedAt:"06/29/2026" },
+  { id:24, name:"Black hard-shell equipment case", category:"Electronics", condition:"Good", description:"Large black hard-shell case (camera or AV equipment), rectangular with latches. On 2nd shelf from top, far left.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — 2nd shelf from top, far left", directions:"1. Enter the main storage corridor and face the shelving unit on the LEFT wall.\n2. Look at the SECOND shelf from the top on the far left — large black hard case.", media:"IMG_1071.jpeg", notes:"Zone 2 — Main Shelving Unit (left side)", addedAt:"06/29/2026" },
+  { id:25, name:"Navy blue tote bag (JN branded)", category:"Other", condition:"Good", description:"Large navy blue tote bag with white JN logo. Sitting on 2nd shelf from top, center-left.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — 2nd shelf from top, center-left", directions:"1. Face the main shelving unit on the LEFT wall.\n2. Look at the SECOND shelf from the top, center-left — navy tote bag with JN logo.", media:"IMG_1071.jpeg", notes:"Zone 2 — Main Shelving Unit (left side)", addedAt:"06/29/2026" },
+  { id:26, name:"Blue and white cooler", category:"Kitchen items", condition:"Good", description:"Small blue/white cooler or insulated container on the 2nd shelf.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — 2nd shelf, center, next to navy tote", directions:"1. Face the main shelving unit on the LEFT wall.\n2. Look at the SECOND shelf — the blue/white cooler is center, next to the navy tote bag.", media:"IMG_1071.jpeg", notes:"Zone 2 — Main Shelving Unit (left side)", addedAt:"06/29/2026" },
+  { id:27, name:"Wooden crate / storage box", category:"Other", condition:"Good", description:"Small open-top wooden crate or box on the 2nd shelf, center area.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — 2nd shelf, center, next to cooler", directions:"1. Face the main shelving unit on the LEFT wall.\n2. Look at the SECOND shelf — wooden crate is center, adjacent to the blue cooler.", media:"IMG_1071.jpeg", notes:"Zone 2 — Main Shelving Unit (left side)", addedAt:"06/29/2026" },
+  { id:28, name:"Bankers boxes — bottom shelf (left section)", category:"Documents", condition:"Good", description:"Multiple white Bankers Box archive boxes on the bottom shelf of the left-side shelving unit.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — bottom shelf, left section", directions:"1. Face the main shelving unit on the LEFT wall.\n2. Look at the BOTTOM shelf on the left section — multiple white Bankers Boxes.", media:"IMG_1071.jpeg", notes:"Zone 2 — Main Shelving Unit (left side)", addedAt:"06/29/2026" },
+  { id:29, name:"Hand saw (yellow handle)", category:"Tools", condition:"Good", description:"Yellow-handled hand saw visible at the bottom shelf front edge of the shelving unit.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — bottom shelf, front edge, left section", directions:"1. Face the main shelving unit on the LEFT wall.\n2. Look at the BOTTOM shelf front edge — the yellow-handled hand saw is visible.", media:"IMG_1071.jpeg", notes:"Zone 2 — Main Shelving Unit (left side)", addedAt:"06/29/2026" },
+  { id:30, name:"Wooden extension ladder (Michigan brand)", category:"Tools", condition:"Good", description:"Full-size wood extension ladder, Michigan brand, leaning against the left wall at entrance to main storage corridor.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Left wall — leaning at entrance to main corridor", directions:"1. Enter the Back Storage Room main corridor.\n2. The wooden ladder is leaning against the LEFT wall immediately at the entrance.", media:"IMG_1072.jpeg", notes:"Zone 3 — Left wall / corridor entrance", addedAt:"06/29/2026" },
+  { id:31, name:"Large cardboard shipping boxes", category:"Other", condition:"Good", description:"Several large cardboard boxes stacked/leaning against the RIGHT wall of the corridor, opposite the ladder.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Right wall — leaning against wall at corridor entrance", directions:"1. Enter the Back Storage Room main corridor.\n2. Look at the RIGHT wall — cardboard boxes are leaning/stacked there opposite the ladder.", media:"IMG_1072.jpeg", notes:"Zone 3 — Right wall / corridor entrance", addedAt:"06/29/2026" },
+  { id:32, name:"Large plastic-wrapped box (labeled '562 INTL')", category:"Other", condition:"Good", description:"Very large box wrapped in clear plastic with green marker labeling '562 INTL'. On the floor at the far end near the back door.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Far end of room — floor, left side near back door", directions:"1. Walk all the way to the FAR END of the Back Storage Room corridor.\n2. Look on the FLOOR on the left — the large clear-wrapped box labeled '562 INTL'.", media:"IMG_1073.jpeg", notes:"Zone 4 — Far end of room", addedAt:"06/29/2026" },
+  { id:33, name:"Miscellaneous electronics / black equipment items", category:"Electronics", condition:"Good", description:"Assorted black electronics or AV equipment on the 2nd shelf from top at the far end of the shelving unit.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — 2nd shelf from top, far end section", directions:"1. Walk to the FAR END of the shelving unit.\n2. Look at the SECOND shelf from the top — miscellaneous black electronics.", media:"IMG_1073.jpeg", notes:"Zone 4 — Far end shelving", addedAt:"06/29/2026" },
+  { id:34, name:"Styrofoam cooler (white, large)", category:"Kitchen items", condition:"Good", description:"Large white styrofoam cooler on the upper shelves at the far end of the shelving unit.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — upper shelf, far end, right side", directions:"1. Walk to the FAR END of the shelving unit.\n2. Look at the UPPER right shelf — large white styrofoam cooler.", media:"IMG_1073.jpeg", notes:"Zone 4 — Far end shelving", addedAt:"06/29/2026" },
+  { id:35, name:"Bankers boxes labeled '33250' (Staples)", category:"Documents", condition:"Good", description:"Multiple white Bankers Box archive boxes labeled '33250' (Staples brand) on 3rd/4th shelves at the far end.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — 3rd/4th shelf from top, far end", directions:"1. Walk to the FAR END of the shelving unit.\n2. Look at the 3rd and 4th shelves from the top — multiple boxes labeled '33250'.", media:"IMG_1073.jpeg", notes:"Zone 4 — Far end shelving", addedAt:"06/29/2026" },
+  { id:36, name:"Archive boxes — top shelf (Cal Right Files, Run Res 500, etc.)", category:"Documents", condition:"Good", description:"Row of labeled white Bankers Box archive boxes on the top shelf. Labels: 'Cal Right Files Oct F', 'Run Res 500 Labor L-3', and others.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — top shelf, mid-section", directions:"1. Face the main shelving unit.\n2. Look at the TOP shelf in the mid-section — row of labeled archive boxes.", media:"IMG_1074.jpeg", notes:"Zone 5 — Labeled archive & file boxes", addedAt:"06/29/2026" },
+  { id:37, name:"Holiday decorations bag ('Is Get' Christmas bag)", category:"Holiday decorations", condition:"Good", description:"Large metallic/foil bag of holiday decorations with 'Is Get' handwriting visible, Christmas garland and ornaments inside.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — 2nd shelf, center section", directions:"1. Face the main shelving unit.\n2. Look at the SECOND shelf from the top in the center — large metallic holiday bag.", media:"IMG_1074.jpeg", notes:"Zone 5 — Holiday decorations", addedAt:"06/29/2026" },
+  { id:38, name:"Plaid Christmas gift wrap roll (red/green tartan)", category:"Holiday decorations", condition:"Good", description:"Roll of red and green plaid/tartan Christmas gift wrapping paper on the shelf.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — 2nd shelf, center, next to holiday bag", directions:"1. Face the main shelving unit.\n2. Look at the SECOND shelf — the plaid red/green gift wrap roll is next to the holiday decorations bag.", media:"IMG_1074.jpeg", notes:"Zone 5 — Holiday decorations", addedAt:"06/29/2026" },
+  { id:39, name:"Items in black trash bags (middle shelf)", category:"Other", condition:"Unknown", description:"Several black garbage bags containing unknown items on the middle shelf. Green tags visible on some bags.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — 3rd shelf from top, center section", directions:"1. Face the main shelving unit.\n2. Look at the THIRD shelf from the top — black trash bags with green tags.", media:"IMG_1074.jpeg", notes:"Zone 5 — Contents unknown, in black bags", addedAt:"06/29/2026" },
+  { id:40, name:"Wooden shelf bracket / corbel", category:"Other", condition:"Good", description:"Light natural wood shelf bracket or architectural piece, flat and elongated, on the 3rd shelf.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — 3rd shelf, center, on top of black bags", directions:"1. Face the main shelving unit.\n2. Look at the THIRD shelf — flat light wood shelf bracket is on top of the black bags.", media:"IMG_1074.jpeg", notes:"Zone 5 — Miscellaneous", addedAt:"06/29/2026" },
+  { id:41, name:"Paint cans (blue, Ultima brand)", category:"Tools", condition:"Good", description:"Two or more blue paint cans (Ultima brand) on the bottom shelf.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — bottom shelf, center section", directions:"1. Face the main shelving unit.\n2. Look at the BOTTOM shelf in the center — blue paint cans.", media:"IMG_1074.jpeg", notes:"Zone 5 — Tools/supplies", addedAt:"06/29/2026" },
+  { id:42, name:"File boxes — top row (Supply Room Files, Florida Brochers, Memory Lane, Orchard)", category:"Documents", condition:"Good", description:"Row of labeled Bankers Box file boxes: 'Supply Room Files', 'Florida Brochers C', 'Memory Lane', 'Orchard'.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — upper shelf, labeled boxes section", directions:"1. Face the main shelving unit.\n2. Look at the UPPER shelf — labeled boxes: Supply Room Files, Florida Brochers, Memory Lane, Orchard left to right.", media:"IMG_1075.jpeg", notes:"Zone 6 — Labeled document/file boxes", addedAt:"06/29/2026" },
+  { id:43, name:"Mixed shipping/archive boxes (U-Haul, Willcopy, Bankers Box '1706 Attn Square Pmts')", category:"Documents", condition:"Good", description:"Middle shelf: U-Haul moving box, green Willcopy paper box, Bankers Box labeled '1706 Attn Square Pmts'.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — middle shelf, mid-section", directions:"1. Face the main shelving unit.\n2. Look at the MIDDLE shelf in the mid-section — assorted boxes including U-Haul, Willcopy, and '1706 Attn Square Pmts'.", media:"IMG_1075.jpeg", notes:"Zone 6 — Mixed boxes", addedAt:"06/29/2026" },
+  { id:44, name:"Holiday decorations — bottom shelf overflow", category:"Holiday decorations", condition:"Good", description:"Bottom shelf: additional holiday decoration items — Christmas bags and foam board.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — bottom shelf, below labeled file boxes", directions:"1. Face the main shelving unit.\n2. Look at the BOTTOM shelf below the labeled file boxes — holiday decoration bags and foam.", media:"IMG_1075.jpeg", notes:"Zone 6 — Holiday decorations overflow", addedAt:"06/29/2026" },
+  { id:45, name:"Dell equipment box + archive boxes (DESTROY / SALVAGE / STORAGE labels)", category:"Electronics", condition:"Good", description:"Dell branded cardboard box alongside archive boxes labeled DESTROY, SALVAGE, STORAGE on the top shelf near file cabinets.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — top shelf, end section near file cabinets", directions:"1. Walk toward the FAR END of the shelving unit near the file cabinets.\n2. Look at the TOP shelf — Dell box and archive boxes labeled Destroy/Salvage/Storage.", media:"IMG_1076.jpeg", notes:"Zone 7 — Electronics & tech items", addedAt:"06/29/2026" },
+  { id:46, name:"Loose file folders / documents (open box)", category:"Documents", condition:"Fair", description:"Open cardboard box containing loose hanging file folders and documents on a middle shelf.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — 2nd shelf, section near file cabinets", directions:"1. Walk toward the FAR END of the shelving unit.\n2. Look at the SECOND shelf — open box with loose hanging file folders.", media:"IMG_1076.jpeg", notes:"Zone 7 — Documents", addedAt:"06/29/2026" },
+  { id:47, name:"Bankers Box labeled 'RAB'", category:"Documents", condition:"Good", description:"Standard white Bankers Box with 'RAB' handwritten on front. On middle shelf.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — 2nd shelf, next to file folders", directions:"1. Walk toward the FAR END of the shelving unit.\n2. Look at the SECOND shelf — Bankers Box labeled 'RAB'.", media:"IMG_1076.jpeg", notes:"Zone 7 — Labeled archive boxes", addedAt:"06/29/2026" },
+  { id:48, name:"APC UPS battery backup units (2 units)", category:"Electronics", condition:"Good", description:"Two black APC brand UPS (uninterruptible power supply) battery backup units stacked on the right side of the shelving unit.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — right side, 2nd/3rd shelf, near file cabinets", directions:"1. Walk toward the FAR END of the shelving unit near the file cabinets.\n2. Look at the RIGHT side — two black APC UPS units stacked.", media:"IMG_1076.jpeg", notes:"Zone 7 — Electronics", addedAt:"06/29/2026" },
+  { id:49, name:"Bankers Box labeled 'SDC PRESENTATION'", category:"Documents", condition:"Good", description:"White Bankers Box with 'SDC PRESENTATION' written in black marker on front.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — 3rd shelf from top, right section", directions:"1. Face the main shelving unit.\n2. Look at the THIRD shelf from the top on the right section — Bankers Box labeled 'SDC Presentation'.", media:"IMG_1077.jpeg", notes:"Zone 8 — SDC labeled boxes", addedAt:"06/29/2026" },
+  { id:50, name:"Bankers Box labeled '1706 P-Z'", category:"Documents", condition:"Good", description:"White Bankers Box with '1706 P-Z' written on front. Located below the SDC Presentation box.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — 4th shelf from top, right section", directions:"1. Face the main shelving unit.\n2. Look at the FOURTH shelf from the top on the right section — Bankers Box labeled '1706 P-Z'.", media:"IMG_1077.jpeg", notes:"Zone 8 — Labeled archive boxes", addedAt:"06/29/2026" },
+  { id:51, name:"Lateral file cabinet (left) — 5-drawer Hon brand", category:"Furniture", condition:"Good", description:"Large dark gray Hon 5-drawer lateral file cabinet. Labeled 'LM Holdings Ltd'. At far end of storage room.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Far end of room — left lateral file cabinet", directions:"1. Walk to the FAR END of the Back Storage Room.\n2. The two large gray lateral file cabinets are at the back wall.\n3. This is the LEFT cabinet (5 drawers, LM Holdings Ltd).", media:"IMG_1078.jpeg", notes:"Zone 9 — File cabinets", addedAt:"06/29/2026" },
+  { id:52, name:"Lateral file cabinet (right) — 5-drawer Hon brand", category:"Furniture", condition:"Good", description:"Second dark gray Hon 5-drawer lateral file cabinet. Also labeled 'LM Holdings Ltd'. Right of the first.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Far end of room — right lateral file cabinet", directions:"1. Walk to the FAR END of the Back Storage Room.\n2. The two large gray lateral file cabinets are at the back wall.\n3. This is the RIGHT cabinet (5 drawers, LM Holdings Ltd).", media:"IMG_1078.jpeg", notes:"Zone 9 — File cabinets", addedAt:"06/29/2026" },
+  { id:53, name:"Clear bin with cables and accessories (on top of file cabinets)", category:"Electronics", condition:"Good", description:"Clear plastic storage bin containing cables, USB cords, and electronics accessories on top of the right file cabinet.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"On top of right lateral file cabinet", directions:"1. Go to the FAR END and find the two gray lateral file cabinets.\n2. Look ON TOP of the RIGHT cabinet — clear bin with cables.", media:"IMG_1078.jpeg", notes:"Zone 9 — On top of cabinets", addedAt:"06/29/2026" },
+  { id:54, name:"Stacked archive boxes on top of left file cabinet (labeled '33250')", category:"Documents", condition:"Good", description:"Multiple white archive/Bankers Boxes stacked on top of the left file cabinet, labeled '33250' (Staples).", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"On top of left lateral file cabinet", directions:"1. Go to the FAR END and find the two gray lateral file cabinets.\n2. Look ON TOP of the LEFT cabinet — stacked white boxes labeled '33250'.", media:"IMG_1078.jpeg", notes:"Zone 9 — On top of cabinets", addedAt:"06/29/2026" },
+  { id:55, name:"Bankers Boxes labeled 'Orchard' (set of 3)", category:"Documents", condition:"Good", description:"Three white Bankers Box archive boxes with 'ORCHARD' written on them. Two stacked on top shelf; one below.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — top shelf and 2nd shelf, Orchard section", directions:"1. Face the main shelving unit near the file cabinets.\n2. Look at the TOP shelf — two Orchard boxes side by side. One more Orchard box on the shelf below.", media:"IMG_1079.jpeg", notes:"Zone 10 — Orchard labeled boxes", addedAt:"06/29/2026" },
+  { id:56, name:"Box labeled 'SDC 2018 AP'", category:"Documents", condition:"Good", description:"White cardboard box with 'SDC 2018 AP' written in blue marker on front. On 2nd shelf from top.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — 2nd shelf from top, right of Orchard boxes", directions:"1. Face the main shelving unit near the file cabinets.\n2. Look at the SECOND shelf from the top, right of the Orchard boxes — SDC 2018 AP box.", media:"IMG_1079.jpeg", notes:"Zone 10 — SDC labeled boxes", addedAt:"06/29/2026" },
+  { id:57, name:"Bankers Box labeled '500 W'", category:"Documents", condition:"Good", description:"White Bankers Box with '500 W' written on the front label.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — 2nd shelf, left of Orchard section", directions:"1. Face the main shelving unit.\n2. Look at the SECOND shelf — the '500 W' Bankers Box is on the left of the Orchard boxes section.", media:"IMG_1079.jpeg", notes:"Zone 10 — 500 W labeled boxes", addedAt:"06/29/2026" },
+  { id:58, name:"SDC Presentation box + loose file folders (lower shelf)", category:"Documents", condition:"Good", description:"Lower shelf area: SDC Presentation Bankers Box plus an open box of loose hanging file folders below.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Main shelving — 3rd and 4th shelves, right section", directions:"1. Face the main shelving unit near the file cabinets.\n2. Look at the 3rd and 4th shelves — SDC Presentation box and open folder box below.", media:"IMG_1079.jpeg", notes:"Zone 10 — SDC Presentation documents", addedAt:"06/29/2026" },
+  { id:59, name:"Frosted glass wall cabinet (2-door, white frame)", category:"Furniture", condition:"Good", description:"Built-in 2-door cabinet with frosted glass panels. Has a caution note: 'Keep hallway door open when opening this cabinet.' In supply nook off corridor.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Supply nook — wall cabinet, visible from kitchen doorway", directions:"1. From the kitchen, look into the back storage room doorway.\n2. Immediately to the RIGHT in the nook — the 2-door frosted glass wall cabinet is mounted on the wall.", media:"IMG_1080.jpeg", notes:"Zone 11 — Supply nook", addedAt:"06/29/2026" },
+  { id:60, name:"Yellow mop bucket with wringer", category:"Other", condition:"Good", description:"Yellow commercial mop bucket with red-handled mop/wringer inside. On the floor in the supply nook below the wall cabinet.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Supply nook — floor, below the frosted wall cabinet, left side", directions:"1. Go to the supply nook visible from the kitchen doorway.\n2. Look on the FLOOR below the frosted wall cabinet on the LEFT — yellow mop bucket.", media:"IMG_1080.jpeg", notes:"Zone 11 — Supply nook", addedAt:"06/29/2026" },
+  { id:61, name:"Case(s) of water bottles (Poland Spring)", category:"Kitchen items", condition:"Good", description:"One or more cases of Poland Spring water bottles stacked on the floor next to the mop bucket in the supply nook.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Supply nook — floor, below the frosted wall cabinet, right side", directions:"1. Go to the supply nook visible from the kitchen doorway.\n2. Look on the FLOOR below the frosted wall cabinet on the RIGHT — cases of Poland Spring water.", media:"IMG_1080.jpeg", notes:"Zone 11 — Supply nook", addedAt:"06/29/2026" },
+  { id:62, name:"Bag of snack chips (large orange bag)", category:"Kitchen items", condition:"Good", description:"Large orange bag of snack chips (Sunchips or similar) sitting on top of the wall cabinet.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Supply nook — on top of frosted wall cabinet", directions:"1. Go to the supply nook.\n2. Look ON TOP of the frosted wall cabinet — large orange snack bag.", media:"IMG_1080.jpeg", notes:"Zone 11 — Supply nook", addedAt:"06/29/2026" },
+  { id:63, name:"Framed artwork / photos (group of 4–5 pieces)", category:"Decor", condition:"Good", description:"Group of 4–5 framed pictures and artwork leaning against the LEFT wall of the storage corridor. Mix of white-matted prints, dark frames, and panels.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Left wall of corridor — leaning against wall, mid-corridor", directions:"1. Enter the Back Storage Room corridor.\n2. Walk partway in and look at the LEFT wall — the group of framed artwork is leaning against the wall.", media:"IMG_1081.jpeg", notes:"Zone 12 — Framed artwork / decor", addedAt:"06/29/2026" },
+  { id:64, name:"LEGO set box (blue)", category:"Other", condition:"Good", description:"Blue LEGO branded box/container visible on the floor near the framed artwork area.", buildingId:1, buildingName:"500 Walnut", roomId:102, roomName:"Back Storage Room", spot:"Floor — near framed artwork, right side", directions:"1. Find the framed artwork leaning on the left wall of the corridor.\n2. Look on the FLOOR to the right of the artwork — blue LEGO box.", media:"IMG_1081.jpeg", notes:"Zone 12 — Miscellaneous", addedAt:"06/29/2026" }
+];
+
+
+
+// ── state ──────────────────────────────────────────────────
+let db = { buildings: JSON.parse(JSON.stringify(SEED_BUILDINGS)), items: JSON.parse(JSON.stringify(SEED_ITEMS)), nextId: 200 };
+const STORAGE_KEY = 'inventory-db';
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxKYDAXajetAHbYCej3VSCZtjYEgw0qoY-qXJtNeKOXopvllzVY3u2Ra8D-nvozjJzX/exec';
+let saveTimer = null;
+let sheetsOnline = false;
+
+function computeNextId(d){
+  let max = 200;
+  (d.items||[]).forEach(i=>{ if(i.id>max) max=i.id; });
+  (d.buildings||[]).forEach(b=>{
+    if(b.id>max) max=b.id;
+    (b.rooms||[]).forEach(r=>{ if(r.id>max) max=r.id; });
+  });
+  return max;
+}
+
+async function loadDB(){
+  const indicator = document.getElementById('save-indicator');
+  // Try Google Sheets first (the shared, live source of truth)
+  try{
+    if(indicator){ indicator.textContent='Connecting to Sheet…'; indicator.style.opacity='1'; indicator.style.color='#185FA5'; }
+    const res = await fetch(SHEETS_URL, { method:'GET' });
+    if(res.ok){
+      const data = await res.json();
+      if(data && data.buildings && data.items){
+        db = { buildings:data.buildings, items:data.items, nextId: computeNextId(data) };
+        sheetsOnline = true;
+        if(indicator){ indicator.textContent='&#128279; Synced with Sheet'; indicator.style.color='#3B6D11'; setTimeout(()=>indicator.style.opacity='0',2000); }
+        return;
+      }
+    }
+    throw new Error('Bad response from Sheets');
+  }catch(e){
+    console.warn('Sheets sync unavailable, falling back to local storage:', e);
+    sheetsOnline = false;
+  }
+  // Fallback: local artifact storage
+  try{
+    const res = await window.storage.get(STORAGE_KEY, false);
+    if(res && res.value){
+      const parsed = JSON.parse(res.value);
+      if(parsed && parsed.buildings && parsed.items) db = parsed;
+    }
+  }catch(e){
+    console.log('No local saved data found, using seed data.');
+  }
+  if(indicator){ indicator.textContent='&#9888; Offline (saved locally only)'; indicator.style.color='#854F0B'; indicator.style.opacity='1'; }
+}
+
+async function saveDB(){
+  const indicator = document.getElementById('save-indicator');
+  if(indicator){ indicator.textContent='Saving…'; indicator.style.opacity='1'; indicator.style.color='#185FA5'; }
+
+  // Always keep a local backup copy
+  try{ await window.storage.set(STORAGE_KEY, JSON.stringify(db), false); }catch(e){ console.error('Local save failed', e); }
+
+  if(sheetsOnline){
+    try{
+      const res = await fetch(SHEETS_URL, {
+        method:'POST',
+        headers:{ 'Content-Type':'text/plain;charset=utf-8' }, // avoids CORS preflight on Apps Script
+        body: JSON.stringify({ buildings: db.buildings, items: db.items })
+      });
+      if(!res.ok) throw new Error('Sheet save failed');
+      if(indicator){ indicator.textContent='&#128279; Saved to Sheet'; indicator.style.color='#3B6D11';
+        clearTimeout(saveTimer); saveTimer=setTimeout(()=>indicator.style.opacity='0',1500); }
+      return;
+    }catch(e){
+      console.error('Sheets save failed, saved locally only:', e);
+      if(indicator){ indicator.textContent='&#9888; Saved locally (Sheet sync failed)'; indicator.style.color='#854F0B'; }
+      return;
+    }
+  }
+  if(indicator){ indicator.textContent='&#9888; Saved locally (offline)'; indicator.style.color='#854F0B'; }
+}
+
+async function resetToSeed(){
+  if(!confirm('This will erase saved changes (including on the Sheet) and restore the original seed data. Continue?')) return;
+  db = { buildings: JSON.parse(JSON.stringify(SEED_BUILDINGS)), items: JSON.parse(JSON.stringify(SEED_ITEMS)), nextId: 200 };
+  await saveDB();
+  renderDash(); populateFilterDropdowns(); runSearch(); populateBuildingSelects(); renderLocTree();
+}
+
+// ── helpers ────────────────────────────────────────────────
+function esc(s){ return s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : ''; }
+
+function getBadgeClass(cat){
+  const m = {'Kitchen items':'badge-blue','Furniture':'badge-amber','Electronics':'badge-blue','Decor':'badge-green','Books/Media':'badge-purple','Tools':'badge-amber','Documents':'badge-gray','Sports equipment':'badge-green','Holiday decorations':'badge-purple','Other':'badge-gray'};
+  return m[cat] || 'badge-gray';
+}
+
+function getBuilding(id){ return db.buildings.find(b=>b.id==id); }
+function getRoom(bid,rid){ const b=getBuilding(bid); return b&&b.rooms.find(r=>r.id==rid); }
+
+// ── tabs ───────────────────────────────────────────────────
+function switchTab(id){
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    t.classList.toggle('active', ['dashboard','search','add','locations'][i]===id);
+  });
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  if(id==='dashboard') renderDash();
+  if(id==='search'){ populateFilterDropdowns(); runSearch(); }
+  if(id==='add') populateBuildingSelects();
+  if(id==='locations') renderLocTree();
+}
+
+// ── dashboard ──────────────────────────────────────────────
+function renderDash(){
+  document.getElementById('s-items').textContent = db.items.length;
+  document.getElementById('s-buildings').textContent = db.buildings.length;
+  document.getElementById('s-rooms').textContent = db.buildings.reduce((s,b)=>s+b.rooms.length,0);
+  let html = '';
+  db.buildings.forEach(bld => {
+    bld.rooms.forEach(room => {
+      const items = db.items.filter(i=>i.buildingId==bld.id && i.roomId==room.id);
+      if(!items.length) return;
+      html += `<div style="margin-bottom:1rem">
+        <div style="font-size:13px;font-weight:500;color:#185FA5;margin-bottom:6px">&#127970; ${esc(bld.name)} &rsaquo; ${esc(room.name)} <span style="font-size:11px;background:#E6F1FB;padding:1px 7px;border-radius:10px;color:#185FA5">${items.length}</span></div>`;
+      items.forEach(item => { html += itemCard(item); });
+      html += `</div>`;
+    });
+  });
+  if(!html) html = '<div class="empty">&#128230;<br>No items yet</div>';
+  document.getElementById('dash-list').innerHTML = html;
+}
+
+// ── search ─────────────────────────────────────────────────
+function populateFilterDropdowns(){
+  const fb=document.getElementById('fb'), fr=document.getElementById('fr');
+  const bv=fb.value, rv=fr.value;
+  fb.innerHTML='<option value="">All buildings</option>';
+  fr.innerHTML='<option value="">All rooms</option>';
+  db.buildings.forEach(b=>{
+    fb.insertAdjacentHTML('beforeend',`<option value="${b.id}">${esc(b.name)}</option>`);
+    b.rooms.forEach(r=>fr.insertAdjacentHTML('beforeend',`<option value="${b.id}-${r.id}">${esc(b.name)} › ${esc(r.name)}</option>`));
+  });
+  fb.value=bv; fr.value=rv;
+}
+
+function runSearch(){
+  const q=(document.getElementById('q').value||'').toLowerCase();
+  const fb=document.getElementById('fb').value;
+  const fr=document.getElementById('fr').value;
+  const fc=document.getElementById('fc').value;
+  let res=db.items.filter(item=>{
+    const txt=(item.name+item.description+item.category+item.notes+item.spot).toLowerCase();
+    if(q && !txt.includes(q)) return false;
+    if(fb && item.buildingId!=fb) return false;
+    if(fr){ const[bid,rid]=fr.split('-'); if(item.buildingId!=bid||item.roomId!=rid) return false; }
+    if(fc && item.category!==fc) return false;
+    return true;
+  });
+  const el=document.getElementById('search-results');
+  if(!res.length){
+    el.innerHTML=`<div class="empty">&#128270;<br>${q||fb||fr||fc?'No items match':'Start typing to search'}</div>`;
+    return;
+  }
+  el.innerHTML=`<div style="font-size:12px;color:#666;margin-bottom:8px">${res.length} item${res.length!==1?'s':''} found</div>`+res.map(itemCard).join('');
+}
+
+// ── item card ──────────────────────────────────────────────
+function itemCard(item){
+  const steps = item.directions ? item.directions.split('\n').filter(s=>s.trim()) : [];
+  const stepsHtml = steps.map((s,i)=>`<div class="step"><span class="step-n">${i+1}</span>${esc(s.replace(/^\d+\.\s*/,''))}</div>`).join('');
+  const thumbSrc = THUMBS[item.id] || '';
+  const thumbBtn = thumbSrc
+    ? `<button class="thumb-btn" onclick="openModal(${item.id})" title="Click to enlarge photo">
+        <img src="${thumbSrc}" alt="${esc(item.name)}">
+      </button>`
+    : '';
+  const findSection = item.directions ? `
+    <div class="find-section">
+      <div class="find-section-label">&#128506; How to find it</div>
+      ${stepsHtml}
+    </div>` : '';
+  return `<div class="item-card">
+    <div class="item-top">
+      ${thumbBtn}
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <div class="item-name">${esc(item.name)}</div>
+          <button class="btn btn-sm btn-danger" onclick="delItem(${item.id})" title="Delete" style="flex-shrink:0">&#128465;</button>
+        </div>
+        <div class="location-path">&#128205; ${esc(item.buildingName)} › ${esc(item.roomName)}${item.spot?' › '+esc(item.spot):''}</div>
+        ${item.description?`<div class="item-meta">${esc(item.description)}</div>`:''}
+        <div style="margin-top:6px">
+          ${item.category?`<span class="badge ${getBadgeClass(item.category)}">${esc(item.category)}</span>`:''}
+          ${item.condition?`<span class="badge badge-gray">${esc(item.condition)}</span>`:''}
+          ${item.media?`<span class="media-tag">&#128247; ${esc(item.media)}</span>`:''}
+        </div>
+        ${item.notes?`<div style="font-size:11px;color:#888;margin-top:6px">&#128221; ${esc(item.notes)}</div>`:''}
+      </div>
+    </div>
+    ${findSection}
+  </div>`;
+}
+
+function openModal(id){
+  const src = THUMBS[id];
+  if(!src) return;
+  const item = db.items.find(i=>i.id===id);
+  if(!item) return;
+  document.getElementById('modal-img').src = src;
+  document.getElementById('modal-title').textContent = item.name;
+  const locText = item.buildingName + ' › ' + item.roomName + (item.spot ? ' › ' + item.spot : '');
+  document.getElementById('modal-caption').innerHTML =
+    '<strong>&#128205; Location:</strong> ' + esc(locText) +
+    (item.description ? '<br><strong>Description:</strong> ' + esc(item.description) : '') +
+    (item.media ? '<br><strong>Photo ref:</strong> ' + esc(item.media) : '');
+  document.getElementById('photo-modal').classList.add('open');
+}
+function closeModal(e){
+  if(e.target===document.getElementById('photo-modal'))
+    document.getElementById('photo-modal').classList.remove('open');
+}
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') document.getElementById('photo-modal').classList.remove('open'); });
+
+function delItem(id){
+  if(!confirm('Remove this item from the database?')) return;
+  db.items=db.items.filter(i=>i.id!==id);
+  renderDash(); runSearch();
+  saveDB();
+}
+
+// ── add item ───────────────────────────────────────────────
+function populateBuildingSelects(){
+  const s=document.getElementById('f-bld');
+  const v=s.value;
+  s.innerHTML='<option value="">— select —</option>';
+  db.buildings.forEach(b=>s.insertAdjacentHTML('beforeend',`<option value="${b.id}">${esc(b.name)}</option>`));
+  s.value=v;
+  updateRooms();
+}
+
+function updateRooms(){
+  const bid=document.getElementById('f-bld').value;
+  const s=document.getElementById('f-room');
+  s.innerHTML='<option value="">— select —</option>';
+  if(!bid) return;
+  const b=getBuilding(bid);
+  if(b) b.rooms.forEach(r=>s.insertAdjacentHTML('beforeend',`<option value="${r.id}">${esc(r.name)}</option>`));
+}
+
+function saveItem(){
+  const n=document.getElementById('f-name').value.trim();
+  const bid=document.getElementById('f-bld').value;
+  const rid=document.getElementById('f-room').value;
+  if(!n){alert('Please enter an item name');return;}
+  if(!bid){alert('Please select a building');return;}
+  if(!rid){alert('Please select a room');return;}
+  const b=getBuilding(bid), room=b&&getRoom(bid,rid);
+  db.items.unshift({
+    id: ++db.nextId,
+    name:n,
+    category:document.getElementById('f-cat').value,
+    condition:document.getElementById('f-cond').value,
+    description:document.getElementById('f-desc').value.trim(),
+    buildingId:parseInt(bid), buildingName:b?b.name:'',
+    roomId:parseInt(rid), roomName:room?room.name:'',
+    spot:document.getElementById('f-spot').value.trim(),
+    directions:document.getElementById('f-dir').value.trim(),
+    media:document.getElementById('f-media').value.trim(),
+    notes:document.getElementById('f-notes').value.trim(),
+    addedAt:new Date().toLocaleDateString()
+  });
+  const msg=document.getElementById('add-ok');
+  msg.style.display='block';
+  setTimeout(()=>msg.style.display='none',3000);
+  clearForm();
+  renderDash();
+  saveDB();
+}
+
+function clearForm(){
+  ['f-name','f-desc','f-spot','f-dir','f-media','f-notes'].forEach(id=>document.getElementById(id).value='');
+  ['f-cat','f-cond','f-bld','f-room'].forEach(id=>document.getElementById(id).selectedIndex=0);
+}
+
+// ── locations ──────────────────────────────────────────────
+function addBuilding(){
+  const n=document.getElementById('nb').value.trim();
+  if(!n) return;
+  if(db.buildings.find(b=>b.name===n)){alert('Already exists');return;}
+  db.buildings.push({id:++db.nextId,name:n,rooms:[]});
+  document.getElementById('nb').value='';
+  renderLocTree(); populateBuildingSelects(); populateFilterDropdowns();
+  saveDB();
+}
+
+function addRoom(){
+  const bid=document.getElementById('rb').value;
+  const n=document.getElementById('nr').value.trim();
+  if(!bid||!n) return;
+  const b=getBuilding(bid);
+  if(!b) return;
+  if(b.rooms.find(r=>r.name===n)){alert('Room already exists');return;}
+  b.rooms.push({id:++db.nextId,name:n});
+  document.getElementById('nr').value='';
+  renderLocTree(); populateBuildingSelects(); populateFilterDropdowns();
+  saveDB();
+}
+
+function renderLocTree(){
+  const rb=document.getElementById('rb');
+  const rv=rb.value;
+  rb.innerHTML='<option value="">Select building</option>';
+  db.buildings.forEach(b=>rb.insertAdjacentHTML('beforeend',`<option value="${b.id}">${esc(b.name)}</option>`));
+  rb.value=rv;
+  const el=document.getElementById('loc-tree');
+  if(!db.buildings.length){el.innerHTML='<div class="empty">No locations yet</div>';return;}
+  el.innerHTML=db.buildings.map(b=>`
+    <div class="loc-item">
+      <span style="font-weight:500">&#127970; ${esc(b.name)}</span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <span class="badge badge-gray">${b.rooms.length} room${b.rooms.length!==1?'s':''}</span>
+        <button class="btn btn-sm btn-danger" onclick="delBuilding(${b.id})">&#128465;</button>
+      </div>
+    </div>
+    <div class="loc-tree">
+      ${b.rooms.map(r=>`
+        <div class="loc-item">
+          <span>&#128682; ${esc(r.name)}</span>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="badge badge-gray">${db.items.filter(i=>i.buildingId==b.id&&i.roomId==r.id).length} items</span>
+            <button class="btn btn-sm btn-danger" onclick="delRoom(${b.id},${r.id})">&#128465;</button>
+          </div>
+        </div>`).join('')}
+      ${!b.rooms.length?'<div style="font-size:12px;color:#aaa;padding:4px 0">No rooms yet</div>':''}
+    </div>
+  `).join('');
+}
+
+function delBuilding(bid){
+  if(!confirm('Delete this building and all its rooms?')) return;
+  db.buildings=db.buildings.filter(b=>b.id!=bid);
+  renderLocTree(); renderDash();
+  saveDB();
+}
+function delRoom(bid,rid){
+  const b=getBuilding(bid);
+  if(b) b.rooms=b.rooms.filter(r=>r.id!=rid);
+  renderLocTree(); renderDash();
+  saveDB();
+}
+
+// ── init ───────────────────────────────────────────────────
+(async function init(){
+  await loadDB();
+  renderDash();
+})();
+
+</script>
+</body>
+</html>
